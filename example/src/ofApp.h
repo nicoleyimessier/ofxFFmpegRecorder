@@ -1,12 +1,10 @@
 #pragma once
-#include "ofBaseApp.h"
+#include "ofMain.h"
 #include "ofxFFmpegRecorder.h"
 #include "ofVideoGrabber.h"
 
-class ofApp : public ofBaseApp
-{
+class ofApp : public ofBaseApp{ 
 public:
-    ofApp();
 
     void setup();
     void update();
@@ -31,4 +29,7 @@ public:
 private:
     ofxFFmpegRecorder m_Recorder;
     ofVideoGrabber m_Grabber;
+    
+    ofFbo mCapFbo;
+    ofPixels mPix;
 };
