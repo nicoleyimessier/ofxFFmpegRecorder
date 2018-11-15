@@ -36,7 +36,7 @@ ofxFFmpegRecorder::~ofxFFmpegRecorder()
     stop();
 }
 
-void ofxFFmpegRecorder::setup(bool recordVideo, bool recordAudio, ofVec2f videoSize, float fps, unsigned int bitrate, const std::string &ffmpegPath)
+void ofxFFmpegRecorder::setup(bool recordVideo, bool recordAudio, glm::vec2 videoSize, float fps, unsigned int bitrate, const std::string &ffmpegPath)
 {
     m_IsRecordVideo = recordVideo;
     m_IsRecordAudio = recordAudio;
@@ -176,18 +176,31 @@ void ofxFFmpegRecorder::setBitRate(unsigned int rate)
     m_BitRate = rate;
 }
 
-std::string ofxFFmpegRecorder::getVideCodec() const
+std::string ofxFFmpegRecorder::getVideoCodec() const
 {
     return m_VideCodec;
 }
 
-void ofxFFmpegRecorder::setVideCodec(const std::string &codec)
+void ofxFFmpegRecorder::setVideoCodec(const std::string &codec)
 {
     if (isRecording()) {
         LOG_NOTICE("A recording is in proggress. The change will take effect for the next recording session.");
     }
 
     m_VideCodec = codec;
+}
+
+float ofxFFmpegRecorder::getWidth() {
+	return m_VideoSize.x;
+}
+void ofxFFmpegRecorder::setWidth(float aw) {
+	m_VideoSize.x = aw;
+}
+float ofxFFmpegRecorder::getHeight() {
+	return m_VideoSize.y;
+}
+void ofxFFmpegRecorder::setHeight(float ah) {
+	m_VideoSize.y = ah;
 }
 
 bool ofxFFmpegRecorder::isPaused() const
@@ -212,6 +225,20 @@ void ofxFFmpegRecorder::setPaused(bool paused)
 
         m_IsPaused = paused;
     }
+}
+
+void ofxFFmpegRecorder::setPixelFormat(ofImageType aType)
+{
+	mPixFmt = "rgb24";
+	if (aType == OF_IMAGE_COLOR) {
+		mPixFmt = "rgb24";
+	}
+	else if (aType == OF_IMAGE_GRAYSCALE) {
+		mPixFmt = "gray";
+	}
+	else {
+		ofLogError() << "unsupported format, setting to OF_IMAGE_COLOR";
+	}
 }
 
 float ofxFFmpegRecorder::getRecordedDuration() const
@@ -280,7 +307,11 @@ bool ofxFFmpegRecorder::record(float duration)
         cmd += arg + " ";
     }
 
+    #if defined(_WIN32)
     m_DefaultRecordingFile = _popen(cmd.c_str(), "w");
+#else
+    m_DefaultRecordingFile = popen(cmd.c_str(), "w");
+#endif
 
     return true;
 }
@@ -307,23 +338,27 @@ bool ofxFFmpegRecorder::startCustomRecord()
     std::vector<std::string> args;
     std::copy(m_AdditionalInputArguments.begin(), m_AdditionalInputArguments.end(), std::back_inserter(args));
 
+	//args.push_back("-pix_fmts");
     args.push_back("-y");
     args.push_back("-an");
     args.push_back("-r " + std::to_string(m_Fps));
     args.push_back("-framerate " + std::to_string(m_Fps));
     args.push_back("-s " + std::to_string(static_cast<unsigned int>(m_VideoSize.x)) + "x" + std::to_string(static_cast<unsigned int>(m_VideoSize.y)));
     args.push_back("-f rawvideo");
-    args.push_back("-pix_fmt rgb24");
+    //args.push_back("-pix_fmt rgb24");
+	args.push_back("-pix_fmt " + mPixFmt);
     args.push_back("-vcodec rawvideo");
     args.push_back("-i -");
+    
 
     args.push_back("-vcodec " + m_VideCodec);
     args.push_back("-b:v " + std::to_string(m_BitRate) + "k");
     args.push_back("-r " + std::to_string(m_Fps));
     args.push_back("-framerate " + std::to_string(m_Fps));
     std::copy(m_AdditionalOutputArguments.begin(), m_AdditionalOutputArguments.end(), std::back_inserter(args));
-
+    
     args.push_back(m_OutputPath);
+//    args.push_back("-codecs ");
 
     std::string cmd = m_FFmpegPath + " ";
     for (auto arg : args) {
@@ -333,7 +368,8 @@ bool ofxFFmpegRecorder::startCustomRecord()
 #if defined(_WIN32)
     m_CustomRecordingFile = _popen(cmd.c_str(), "wb");
 #else
-    m_CustomRecordingFile = _popen(cmd.c_str(), "w");
+//    m_CustomRecordingFile = _popen(cmd.c_str(), "w");
+    m_CustomRecordingFile = popen( cmd.c_str(), "w" );
 #endif // _WIN32
 
     return true;
@@ -380,14 +416,22 @@ size_t ofxFFmpegRecorder::addFrame(const ofPixels &pixels)
 void ofxFFmpegRecorder::stop()
 {
     if (m_CustomRecordingFile) {
+        #if defined(_WIN32)
         _pclose(m_CustomRecordingFile);
+        #else
+        pclose(m_CustomRecordingFile);
+        #endif
         m_CustomRecordingFile = nullptr;
         m_AddedVideoFrames = 0;
         joinThread();
     }
     else if (m_DefaultRecordingFile) {
         fwrite("q", sizeof(char), 1, m_DefaultRecordingFile);
+        #if defined(_WIN32)
         _pclose(m_DefaultRecordingFile);
+        #else
+        pclose(m_DefaultRecordingFile);
+        #endif
         m_DefaultRecordingFile = nullptr;
     }
 }
@@ -395,14 +439,22 @@ void ofxFFmpegRecorder::stop()
 void ofxFFmpegRecorder::cancel()
 {
     if (m_CustomRecordingFile) {
+        #if defined(_WIN32)
         _pclose(m_CustomRecordingFile);
+        #else
+        pclose(m_CustomRecordingFile);
+        #endif
         m_CustomRecordingFile = nullptr;
         m_AddedVideoFrames = 0;
         joinThread();
     }
     else if (m_DefaultRecordingFile) {
         fwrite("q", sizeof(char), 1, m_DefaultRecordingFile);
+#if defined(_WIN32)
         _pclose(m_DefaultRecordingFile);
+#else
+        pclose(m_DefaultRecordingFile);
+#endif
         m_DefaultRecordingFile = nullptr;
     }
 
@@ -419,7 +471,7 @@ void ofxFFmpegRecorder::setOverWrite(bool overwrite)
     m_IsOverWrite = overwrite;
 }
 
-const std::vector<string> &ofxFFmpegRecorder::getAdditionalInputArguments() const
+const std::vector<std::string> &ofxFFmpegRecorder::getAdditionalInputArguments() const
 {
     return m_AdditionalInputArguments;
 }
@@ -433,7 +485,7 @@ void ofxFFmpegRecorder::setAdditionalInputArguments(const std::vector<std::strin
     m_AdditionalInputArguments = args;
 }
 
-void ofxFFmpegRecorder::addAdditionalInputArgument(const string &arg)
+void ofxFFmpegRecorder::addAdditionalInputArgument(const std::string &arg)
 {
     if (isRecording()) {
         LOG_NOTICE("A recording is in proggress. The change will take effect for the next recording session.");
@@ -447,7 +499,7 @@ void ofxFFmpegRecorder::clearAdditionalInputArguments()
     m_AdditionalInputArguments.clear();
 }
 
-const std::vector<string> &ofxFFmpegRecorder::getAdditionalOutputArguments() const
+const std::vector<std::string> &ofxFFmpegRecorder::getAdditionalOutputArguments() const
 {
     return m_AdditionalOutputArguments;
 }
@@ -461,7 +513,7 @@ void ofxFFmpegRecorder::setAdditionalOutputArguments(const std::vector<std::stri
     m_AdditionalOutputArguments = args;
 }
 
-void ofxFFmpegRecorder::addAdditionalOutputArgument(const string &arg)
+void ofxFFmpegRecorder::addAdditionalOutputArgument(const std::string &arg)
 {
     if (isRecording()) {
         LOG_NOTICE("A recording is in proggress. The change will take effect for the next recording session.");
@@ -497,8 +549,8 @@ bool ofxFFmpegRecorder::isRecordingDefault() const
 }
 
 
-void ofxFFmpegRecorder::saveThumbnail(const unsigned int &hour, const unsigned int &minute, const float &second, const string &output, ofVec2f size,
-                                      ofRectangle crop, string videoFilePath)
+void ofxFFmpegRecorder::saveThumbnail(const unsigned int &hour, const unsigned int &minute, const float &second, const std::string &output, glm::vec2 size,
+                                      ofRectangle crop, std::string videoFilePath)
 {
     if (videoFilePath.length() == 0) {
         if (isRecording()) {
@@ -550,9 +602,15 @@ void ofxFFmpegRecorder::saveThumbnail(const unsigned int &hour, const unsigned i
     for (auto arg : args) {
         cmd += arg + " ";
     }
-
+    
+#if defined(_WIN32)
     FILE *file = _popen(cmd.c_str(), "w");
     _pclose(file);
+#else
+    FILE *file = popen(cmd.c_str(), "w");
+    pclose(file);
+#endif
+    
 }
 
 void ofxFFmpegRecorder::determineDefaultDevices()

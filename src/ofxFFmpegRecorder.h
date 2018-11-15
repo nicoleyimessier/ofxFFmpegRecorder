@@ -1,9 +1,14 @@
 #pragma once
 // openFrameworks
 #include "ofTypes.h"
-#include "ofBaseSoundStream.h"
+//#include "ofBaseSoundStream.h"
+#include "ofVideoBaseTypes.h"
+#include "ofSoundBaseTypes.h"
 #include "ofRectangle.h"
 #include "ofPixels.h"
+#if defined(TARGET_OSX)
+#include <thread>
+#endif
 
 using HighResClock = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
@@ -74,7 +79,7 @@ public:
      * @param recordAudio This is not yet supported with custom recording
      * @param ffmpegPath This variable is optional. If left empty, the default "ffmpeg" is used. This required that the "ffmpeg" is in the system's path.
      */
-    void setup(bool recordVideo, bool recordAudio, ofVec2f videoSize = ofVec2f::zero(), float fps = 30.f, unsigned int bitrate = 2000,
+    void setup(bool recordVideo, bool recordAudio, glm::vec2 videoSize = glm::vec2(0,0), float fps = 30.f, unsigned int bitrate = 2000,
                const std::string &ffmpegPath = "");
 
     bool isRecordVideo() const;
@@ -104,11 +109,18 @@ public:
     unsigned int getBitRate() const;
     void setBitRate(unsigned int rate);
 
-    std::string getVideCodec() const;
-    void setVideCodec(const std::string &codec);
+    std::string getVideoCodec() const;
+    void setVideoCodec(const std::string &codec);
+
+	float getWidth();
+	void setWidth(float aw);
+	float getHeight();
+	void setHeight(float ah);
 
     bool isPaused() const;
     void setPaused(bool paused);
+
+	void setPixelFormat(ofImageType aType);
 
     /**
      * @brief Returns the record duration for the custom recording. This will return 0 for the webcam recording.
@@ -213,7 +225,7 @@ public:
      * @param size
      * @param videoFilePath
      */
-    void saveThumbnail(const unsigned int &hour, const unsigned int &minute, const float &second, const std::string &output, ofVec2f size = ofVec2f(0, 0),
+    void saveThumbnail(const unsigned int &hour, const unsigned int &minute, const float &second, const std::string &output, glm::vec2 size = glm::vec2(0, 0),
                        ofRectangle crop = ofRectangle(0, 0, 0, 0), std::string videoFilePath = "");
 
 private:
@@ -230,7 +242,7 @@ private:
      */
     bool m_IsPaused;
 
-    ofVec2f m_VideoSize;
+    glm::vec2 m_VideoSize;
     unsigned int m_BitRate, m_AddedVideoFrames;
 
     float m_Fps,
@@ -265,6 +277,8 @@ private:
 
     std::thread m_Thread;
     LockFreeQueue<ofPixels *> m_Frames;
+
+    std::string mPixFmt = "rgb24";
 
 private:
     /**
