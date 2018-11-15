@@ -79,6 +79,8 @@ public:
      * @param recordAudio This is not yet supported with custom recording
      * @param ffmpegPath This variable is optional. If left empty, the default "ffmpeg" is used. This required that the "ffmpeg" is in the system's path.
      */
+    
+    
     void setup(bool recordVideo, bool recordAudio, glm::vec2 videoSize = glm::vec2(0,0), float fps = 30.f, unsigned int bitrate = 2000,
                const std::string &ffmpegPath = "");
 
@@ -90,6 +92,7 @@ public:
 
     std::string getFFmpegPath() const;
     void setFFmpegPath(const std::string &path);
+    void setFFmpegPathToAddonsPath();
 
     float getCaptureDuration() const;
     void setCaptureDuration(float duration);

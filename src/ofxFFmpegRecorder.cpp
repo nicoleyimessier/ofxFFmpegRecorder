@@ -92,6 +92,17 @@ void ofxFFmpegRecorder::setFFmpegPath(const std::string &path)
     m_FFmpegPath = path;
 }
 
+void ofxFFmpegRecorder::setFFmpegPathToAddonsPath() {
+    if (isRecording()) {
+        LOG_NOTICE("A recording is in proggress. The change will take effect for the next recording session.");
+    }
+    std::string systemFolder = "vs";
+    #if defined(TARGET_OSX)
+    systemFolder = "osx";
+    #endif
+    m_FFmpegPath = ofToDataPath("../../../../../addons/ofxFFmpegRecorder/libs/ffmpeg/lib/"+systemFolder+"/ffmpeg", true);
+}
+
 float ofxFFmpegRecorder::getCaptureDuration() const
 {
     return m_CaptureDuration;
