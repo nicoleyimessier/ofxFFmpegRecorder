@@ -25,11 +25,17 @@ public:
     void windowResized(int w, int h);
     void dragEvent(ofDragInfo dragInfo);
     void gotMessage(ofMessage msg);
-
+    void exit();
+	
 private:
     ofxFFmpegRecorder m_Recorder;
     ofVideoGrabber m_Grabber;
     
     ofFbo mCapFbo;
     ofPixels mPix;
+
+	int width = 1920;
+	int height = 1080;
+
+	bool useGrabber = true;
 };
